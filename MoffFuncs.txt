@@ -199,4 +199,3 @@ installmoffdeps() {
     installoptionaldeps
     installyay
 }
-VC
