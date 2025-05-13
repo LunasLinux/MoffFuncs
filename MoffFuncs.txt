@@ -1,0 +1,202 @@
+# ~/.funcs or /etc/skel/.funcs - Custom Bash Functions
+
+# Activate SWAP memory
+swaponit() {
+    sudo swapon --show || sudo swapon /swapfile && echo "Swap activated"
+}
+
+# Deactivate SWAP
+swapoffit() {
+    sudo swapoff /swapfile && echo "Swap deactivated"
+}
+
+# GPU info (AMD)
+gpuinfo() {
+    lspci | grep -i vga
+    glxinfo | grep "OpenGL renderer" 2>/dev/null
+}
+
+# Monitor info (Wayland friendly)
+moninfo() {
+    echo "Connected displays:"
+    loginctl show-session $(loginctl | grep $(whoami) | awk '{print $1}') -p Type
+    wlr-randr || echo "Use Wayland-compatible tools like 'wlr-randr' or 'kscreen-doctor'"
+}
+
+# Toggle HDR (Plasma-specific)
+togglehdr() {
+    kscreen-doctor output.1.hdr.enabled && echo "HDR toggled (if supported)"
+}
+
+# Enable LightDM
+enablelightdm() {
+    sudo systemctl enable lightdm.service --force
+    sudo systemctl start lightdm.service
+}
+
+# Restart display manager
+restartdm() {
+    sudo systemctl restart lightdm.service
+}
+
+# Set Freesync (requires amdgpu and DRM settings)
+enablefreesync() {
+    echo "Tearing prevention is usually handled via compositor."
+    echo "Check for Freesync support in /sys/class/drm/*/msm_disp or use 'gamescope' or 'modesetting'."
+}
+
+# Kitty transparency/blur test (via KDE settings)
+reloadkitty() {
+    killall kitty && kitty &
+    echo "Reloaded kitty to apply settings."
+}
+
+# Update system
+sysupdate() {
+	sudo pacman -Syu
+}
+
+# Start HTTPD Web service
+startapache() {
+	sudo systemctl start httpd && echo "Apache Web Server Started"
+}
+
+# Stop HTTPD Web service
+abortapache() {
+	sudo systemctl stop httpd && echo "Apache Web Server Aborted"
+}
+
+# Restart HTTPD Web service process
+restartapache() {
+	sudo systemctl restart httpd && echo "Restarted Apache Web Server"
+}
+
+# Reload Apache2 config file
+reloadapache() {
+	sudo systemctl reload httpd && echo "Reloaded Apache config file"
+}
+
+# Print HTTPD Web server status
+statusapache() {
+	systemctl status httpd --no-pager
+}
+
+# Flush package manager cache / remove unused repos
+flushcache() {
+	sudo pacman -Scc
+}
+
+# Edit the .funcs config
+editfuncs() {
+	sudo nvim /etc/skel/.funcs
+}
+
+# Reboots into a CLI only interface powered by tmux. Best for older machines with weaker resources.
+apocalypse-mode() {
+
+	if ! command -v tmux &>/dev/null; then
+	echo "[x] Tmux not installed! Run 'sudo pacman -S tmux' first."
+	return 1
+	fi
+
+	if systemctlo is-enabled sddm &>/dev/null && systemctl is-active sddm &>/dev/null; then
+	echo "[!] Staring Apocalypse Mode in 15 seconds... Press CTRL+C to cancel"
+	for i in {15..1}; do
+		echo -ne "Rebooting in $i seconds...\r"
+		sleep 1
+	done
+	echo -e "\n[*] Entering CLI-only apocalypse mode..."
+	sudo systemctl disable sddm
+	sudo systemctl stop sddm
+	sudo systemctl set-default multi-user.target
+	echo "[!] Desktop Manager disabled. Rebooting into CLI-only mode."
+	sudo reboot
+		else
+	echo "[i] Apocalpyse Mode is already running. Run 'restore-gui' to return to Desktop"
+	fi
+}
+
+# Returns to the KDE Plasma (Wayland) interface
+restore-gui() {
+	echo "[!] Exiting Apocalypse Mode, restoring GUI..."
+	sudo systemctl enable sddm
+	sudo systemctl set-default graphical.target
+	echo "[✓] GUI restored. Rebooting into Desktop Manager"
+	sudo reboot
+}
+
+# Shortcut for "pacman -S"
+install() {
+	if [[ -z "$1" ]]; then
+	echo "Usage: install <package-name>"
+	return 1
+	fi
+	
+		sudo pacman -S "$@"
+}
+
+# Shortcut for "pacman -R"
+uninstall() {
+	if [[ -z "$1" ]]; then
+	echo "Usage: remove <package-name>"
+	return 1
+fi
+	sudo pacman -R "$@"
+}
+
+# Shortcut for "yay -S"
+aur() {
+	if [[ -z "$1" ]]; then
+	echo "Usage: Install package from Arch User Repository (AUR)"
+	return 1
+fi
+	yay -S "$@"
+}
+
+# Shortcut for "pacmann -Sy" (high priority)
+sync() {
+	sudo pacman -Syy
+}
+
+# Shortcut for "pacman -Sy [package name]"
+pacsync() {
+	if [[ -z "$1" ]]; then
+	echo "Usage: Synchronize packages for installed application"
+	return 1
+fi
+	sudo pacman -Sy "$@"
+}
+
+# Install core dependencies required by various MoffFuncs
+installcoredeps() {
+    sudo pacman -S --needed glxinfo mesa-utils sudo
+}
+
+# Install optional (but recommended) tools for full functionality
+installoptionaldeps() {
+    sudo pacman -S --needed tmux kitty neovim wlr-randr kscreen-doctor
+}
+
+# Install AUR helper (if not present)
+installyay() {
+    if ! command -v yay &>/dev/null; then
+        echo "[!] yay not found. Installing from AUR..."
+        sudo pacman -S --needed git base-devel
+        cd /tmp || return
+        git clone https://aur.archlinux.org/yay.git
+        cd yay || return
+        makepkg -si
+        cd ~
+        echo "[!] yay installed."
+    else
+        echo "[x] yay is already installed."
+    fi
+}
+
+# Installs all required dependancies for full functionality
+installmoffdeps() {
+    installcoredeps
+    installoptionaldeps
+    installyay
+}
+VC
