@@ -180,7 +180,7 @@ installoptionaldeps() {
 # Install AUR helper (if not present)
 installyay() {
     if ! command -v yay &>/dev/null; then
-        echo "[!] yay not found. Installing from AUR..."
+        echo "[x] yay not found. Installing from AUR..."
         sudo pacman -S --needed git base-devel
         cd /tmp || return
         git clone https://aur.archlinux.org/yay.git
@@ -253,6 +253,6 @@ applynvidiafixes() {
     echo "[*] Updating GRUB config..."
     sudo grub-mkconfig -o /boot/grub/grub.cfg
 
-    echo "[!] NVIDIA fixes applied. Please reboot to activate changes."
+    echo "[!] NVIDIA fixes applied. Please reboot to apply changes."
 }
 
