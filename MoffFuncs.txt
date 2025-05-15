@@ -199,3 +199,60 @@ installmoffdeps() {
     installoptionaldeps
     installyay
 }
+
+# Installs related NVIDIA drivers
+
+installnvidia() {
+	echo "[*] Installing official NVIDIA drivers..."
+	sudo pacman -Syu nvidia nvidia-utils nvidia-settings lib32-nvidia-utils --needed
+	echo "[!] NVIDIA drivers and utilities installed."
+}
+
+# Installs related NVIDIA-dkms drivers
+installnvidia-dkms() {
+	echo "[*] installing NVIDIA DKMS drivers..."
+	sudo pacman -Syu nvidia-dkms nvidia-utils nvidia-settings lib32-nvidia-utils --needed
+	echo "[!] NVIDIA DKMS drivers and utilies installed."
+}
+
+# Prints NVIDIA driver information
+nvidiainfo() {
+    echo "[*] Detecting NVIDIA GPU..."
+    lspci | grep -i nvidia || echo "No NVIDIA GPU detected."
+    echo "[*] NVIDIA driver version:"
+    nvidia-smi || echo "nvidia-smi failed — is the driver installed and loaded?"
+}
+
+# Updates bootloader to start with NVIDIA drivers by default
+applynvidiafixes() {
+    echo "[*] Applying NVIDIA bootloader fixes..."
+
+    # Define the line to append (avoid duplication)
+    local param="nvidia-drm.modeset=1"
+
+    # Backup GRUB config first
+    sudo cp /etc/default/grub /etc/default/grub.bak && echo "[!] GRUB config backed up."
+
+    # Append the param only if it's not already set
+    if ! grep -q "$param" /etc/default/grub; then
+        echo "[*] Adding '$param' to GRUB_CMDLINE_LINUX_DEFAULT..."
+        sudo sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"/&$param /" /etc/default/grub
+    else
+        echo "[i] '$param' already present in GRUB config."
+    fi
+
+    # Disable Nouveau (open-source NVIDIA driver) to prevent conflict
+    echo "[*] Blacklisting Nouveau..."
+    echo -e "blacklist nouveau\noptions nouveau modeset=0" | sudo tee /etc/modprobe.d/disable-nouveau.conf >/dev/null
+
+    # Regenerate initramfs
+    echo "[*] Regenerating initramfs..."
+    sudo mkinitcpio -P
+
+    # Regenerate GRUB config
+    echo "[*] Updating GRUB config..."
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    echo "[!] NVIDIA fixes applied. Please reboot to activate changes."
+}
+
